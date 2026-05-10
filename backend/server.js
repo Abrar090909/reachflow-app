@@ -87,10 +87,14 @@ async function startServer() {
   });
 
   // Serve frontend in production
-  const frontendDist = path.resolve(__dirname, '..', 'frontend', 'dist');
+  const rootDist = path.join(process.cwd(), 'dist');
+  const localDist = path.resolve(__dirname, '..', 'dist');
+  const frontendDist = fs.existsSync(rootDist) ? rootDist : localDist;
   
+  console.log(`[Server] Checking for frontend at: ${frontendDist}`);
+
   if (fs.existsSync(frontendDist)) {
-    console.log(`[Server] Serving frontend from: ${frontendDist}`);
+    console.log(`[Server] ✅ Frontend found! Serving from: ${frontendDist}`);
     app.use(express.static(frontendDist));
     app.get('*', (req, res) => {
       if (!req.path.startsWith('/api')) {
@@ -98,8 +102,16 @@ async function startServer() {
       }
     });
   } else {
-    console.warn(`[Server] Warning: Frontend dist folder not found at ${frontendDist}`);
-    app.get('/', (req, res) => res.send('Backend is running, but frontend is not built yet.'));
+    console.error(`[Server] ❌ CRITICAL: Frontend dist folder NOT found!`);
+    console.log(`[Server] Current directory: ${process.cwd()}`);
+    console.log(`[Server] Folder contents: ${fs.readdirSync(process.cwd()).join(', ')}`);
+    app.get('/', (req, res) => {
+      res.status(500).send(`
+        <h1>Backend is running, but Frontend is missing</h1>
+        <p>Looking at: ${frontendDist}</p>
+        <p>Try running "Manual Deploy > Clear Build Cache" on Render.</p>
+      `);
+    });
   }
 
   // Cron Jobs

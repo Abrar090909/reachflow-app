@@ -11,7 +11,7 @@
     "dev:backend": "cd backend && nodemon server.js",
     "dev:frontend": "cd frontend && npm run dev",
     "install:all": "npm install",
-    "build": "npm run build --workspace=frontend",
+    "build": "npm run build --workspace=frontend && rm -rf dist && cp -r frontend/dist ./dist",
     "start": "node backend/server.js"
   },
   "devDependencies": {
