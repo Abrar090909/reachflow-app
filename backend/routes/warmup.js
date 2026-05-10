@@ -5,19 +5,19 @@ import { authMiddleware } from '../middleware/auth.js';
 const router = Router();
 router.use(authMiddleware);
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const db = getDb();
-  const accounts = db.prepare('SELECT id, email, provider, warmup_enabled, warmup_stage, health_score, sent_today, daily_send_limit, last_warmup_at, is_active FROM email_accounts WHERE warmup_enabled = 1').all();
-  const recentActivity = db.prepare("SELECT se.*, ea.email as from_email FROM sent_emails se JOIN email_accounts ea ON se.account_id = ea.id WHERE se.email_type = 'warmup' ORDER BY se.sent_at DESC LIMIT 20").all();
+  const accounts = await db.prepare('SELECT id, email, provider, warmup_enabled, warmup_stage, health_score, sent_today, daily_send_limit, last_warmup_at, is_active FROM email_accounts WHERE warmup_enabled = 1').all();
+  const recentActivity = await db.prepare("SELECT se.*, ea.email as from_email FROM sent_emails se JOIN email_accounts ea ON se.account_id = ea.id WHERE se.email_type = 'warmup' ORDER BY se.sent_at DESC LIMIT 20").all();
   res.json({ accounts, total_warming: accounts.length, activity: recentActivity });
 });
 
-router.put('/:id/toggle', (req, res) => {
+router.put('/:id/toggle', async (req, res) => {
   const db = getDb();
-  const account = db.prepare('SELECT * FROM email_accounts WHERE id = ?').get(req.params.id);
+  const account = await db.prepare('SELECT * FROM email_accounts WHERE id = ?').get(req.params.id);
   if (!account) return res.status(404).json({ error: 'Account not found' });
   const newVal = account.warmup_enabled ? 0 : 1;
-  db.prepare('UPDATE email_accounts SET warmup_enabled = ? WHERE id = ?').run(newVal, req.params.id);
+  await db.prepare('UPDATE email_accounts SET warmup_enabled = ? WHERE id = ?').run(newVal, req.params.id);
   res.json({ warmup_enabled: newVal });
 });
 

@@ -9,7 +9,7 @@ const router = Router();
 router.use(authMiddleware);
 const upload = multer({ dest: 'uploads/', limits: { fileSize: 10 * 1024 * 1024 } });
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const db = getDb();
   const { campaign_id, status } = req.query;
   let query = 'SELECT * FROM leads WHERE 1=1';
@@ -17,10 +17,11 @@ router.get('/', (req, res) => {
   if (campaign_id) { query += ' AND campaign_id = ?'; params.push(campaign_id); }
   if (status && status !== 'all') { query += ' AND status = ?'; params.push(status); }
   query += ' ORDER BY id DESC LIMIT 500';
-  res.json(db.prepare(query).all(...params));
+  const leads = await db.prepare(query).all(...params);
+  res.json(leads);
 });
 
-router.post('/import', upload.single('file'), (req, res) => {
+router.post('/import', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
   const campaignId = req.body.campaign_id;
   const db = getDb();
@@ -38,26 +39,24 @@ router.post('/import', upload.single('file'), (req, res) => {
       return '';
     };
 
-    const doImport = db.transaction(() => {
-      for (const record of records) {
-        const email = mapCol(record, ['email', 'emailaddress', 'e-mail']);
-        if (!email || !emailRegex.test(email)) { skipped++; continue; }
-        const existing = db.prepare('SELECT id FROM leads WHERE email = ? AND campaign_id = ?').get(email, campaignId);
-        if (existing) { duplicates++; continue; }
-        db.prepare('INSERT INTO leads (campaign_id, first_name, last_name, email, company, website, custom_1, custom_2) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(
-          campaignId || null,
-          mapCol(record, ['firstname', 'first_name', 'first']),
-          mapCol(record, ['lastname', 'last_name', 'last']),
-          email,
-          mapCol(record, ['company', 'companyname', 'company_name']),
-          mapCol(record, ['website', 'url', 'site']),
-          mapCol(record, ['custom1', 'custom_1']),
-          mapCol(record, ['custom2', 'custom_2'])
-        );
-        imported++;
-      }
-    });
-    doImport();
+    for (const record of records) {
+      const email = mapCol(record, ['email', 'emailaddress', 'e-mail']);
+      if (!email || !emailRegex.test(email)) { skipped++; continue; }
+      const existing = await db.prepare('SELECT id FROM leads WHERE email = ? AND campaign_id = ?').get(email, campaignId);
+      if (existing) { duplicates++; continue; }
+      await db.prepare('INSERT INTO leads (campaign_id, first_name, last_name, email, company, website, custom_1, custom_2) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(
+        campaignId || null,
+        mapCol(record, ['firstname', 'first_name', 'first']),
+        mapCol(record, ['lastname', 'last_name', 'last']),
+        email,
+        mapCol(record, ['company', 'companyname', 'company_name']),
+        mapCol(record, ['website', 'url', 'site']),
+        mapCol(record, ['custom1', 'custom_1']),
+        mapCol(record, ['custom2', 'custom_2'])
+      );
+      imported++;
+    }
+
     fs.unlinkSync(req.file.path);
     res.json({ imported, skipped, duplicates, total: records.length });
   } catch (err) {
@@ -80,15 +79,15 @@ router.post('/preview', upload.single('file'), (req, res) => {
   }
 });
 
-router.put('/:id/status', (req, res) => {
+router.put('/:id/status', async (req, res) => {
   const db = getDb();
-  db.prepare('UPDATE leads SET status = ? WHERE id = ?').run(req.body.status, req.params.id);
+  await db.prepare('UPDATE leads SET status = ? WHERE id = ?').run(req.body.status, req.params.id);
   res.json({ success: true });
 });
 
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
   const db = getDb();
-  db.prepare('DELETE FROM leads WHERE id = ?').run(req.params.id);
+  await db.prepare('DELETE FROM leads WHERE id = ?').run(req.params.id);
   res.json({ success: true });
 });
 

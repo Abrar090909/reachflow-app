@@ -1,3 +1,4 @@
+import { createClient } from '@libsql/client';
 import initSqlJs from 'sql.js';
 import path from 'path';
 import fs from 'fs';
@@ -14,103 +15,109 @@ const dbPath = path.join(dataDir, 'reachflow.db');
 
 let db;
 
-// Wrapper to make sql.js feel like better-sqlite3 API
-class Database {
-  constructor(sqlDb) {
-    this._db = sqlDb;
+// Unified Async Database Wrapper
+class AsyncDatabase {
+  constructor(client, type = 'local') {
+    this.client = client;
+    this.type = type;
   }
 
   prepare(sql) {
-    const self = this;
+    const client = this.client;
+    const type = this.type;
     return {
-      run(...params) {
-        self._db.run(sql, params);
-        self._save();
-        const info = self._db.getRowsModified();
-        // Get last insert rowid
-        const lastId = self._db.exec('SELECT last_insert_rowid() as id');
-        return { changes: info, lastInsertRowid: lastId[0]?.values[0]?.[0] || 0 };
+      async run(...params) {
+        if (type === 'turso') {
+          const result = await client.execute({ sql, args: params });
+          return { changes: result.rowsAffected, lastInsertRowid: Number(result.lastInsertRowid) || 0 };
+        } else {
+          client.run(sql, params);
+          const info = client.getRowsModified();
+          const lastId = client.exec('SELECT last_insert_rowid() as id');
+          // Manual save for sql.js
+          const data = client.export();
+          fs.writeFileSync(dbPath, Buffer.from(data));
+          return { changes: info, lastInsertRowid: lastId[0]?.values[0]?.[0] || 0 };
+        }
       },
-      get(...params) {
-        const stmt = self._db.prepare(sql);
-        stmt.bind(params);
-        if (stmt.step()) {
-          const cols = stmt.getColumnNames();
-          const vals = stmt.get();
+      async get(...params) {
+        if (type === 'turso') {
+          const result = await client.execute({ sql, args: params });
+          return result.rows[0];
+        } else {
+          const stmt = client.prepare(sql);
+          stmt.bind(params);
+          if (stmt.step()) {
+            const cols = stmt.getColumnNames();
+            const vals = stmt.get();
+            stmt.free();
+            const row = {};
+            cols.forEach((c, i) => row[c] = vals[i]);
+            return row;
+          }
           stmt.free();
-          const row = {};
-          cols.forEach((c, i) => row[c] = vals[i]);
-          return row;
+          return undefined;
         }
-        stmt.free();
-        return undefined;
       },
-      all(...params) {
-        const results = [];
-        const stmt = self._db.prepare(sql);
-        stmt.bind(params);
-        while (stmt.step()) {
-          const cols = stmt.getColumnNames();
-          const vals = stmt.get();
-          const row = {};
-          cols.forEach((c, i) => row[c] = vals[i]);
-          results.push(row);
+      async all(...params) {
+        if (type === 'turso') {
+          const result = await client.execute({ sql, args: params });
+          return result.rows;
+        } else {
+          const results = [];
+          const stmt = client.prepare(sql);
+          stmt.bind(params);
+          while (stmt.step()) {
+            const cols = stmt.getColumnNames();
+            const vals = stmt.get();
+            const row = {};
+            cols.forEach((c, i) => row[c] = vals[i]);
+            results.push(row);
+          }
+          stmt.free();
+          return results;
         }
-        stmt.free();
-        return results;
       }
     };
   }
 
-  exec(sql) {
-    this._db.run(sql);
-    this._save();
-  }
-
-  pragma(str) {
-    try { this._db.run(`PRAGMA ${str}`); } catch (e) { /* ignore */ }
-  }
-
-  transaction(fn) {
-    return (...args) => {
-      this._db.run('BEGIN TRANSACTION');
-      try {
-        const result = fn(...args);
-        this._db.run('COMMIT');
-        this._save();
-        return result;
-      } catch (err) {
-        this._db.run('ROLLBACK');
-        throw err;
-      }
-    };
-  }
-
-  _save() {
-    const data = this._db.export();
-    const buffer = Buffer.from(data);
-    fs.writeFileSync(dbPath, buffer);
+  async exec(sql) {
+    if (this.type === 'turso') {
+      await this.client.executeMultiple(sql);
+    } else {
+      this.client.run(sql);
+      const data = this.client.export();
+      fs.writeFileSync(dbPath, Buffer.from(data));
+    }
   }
 }
 
 export async function initDatabase() {
-  const SQL = await initSqlJs();
-  
-  let sqlDb;
-  if (fs.existsSync(dbPath)) {
-    const fileBuffer = fs.readFileSync(dbPath);
-    sqlDb = new SQL.Database(fileBuffer);
+  const tursoUrl = process.env.TURSO_URL;
+  const tursoToken = process.env.TURSO_AUTH_TOKEN;
+
+  if (tursoUrl && tursoToken) {
+    console.log('[DB] Connecting to Turso Cloud SQLite...');
+    const client = createClient({
+      url: tursoUrl,
+      authToken: tursoToken,
+    });
+    db = new AsyncDatabase(client, 'turso');
   } else {
-    sqlDb = new SQL.Database();
+    console.log('[DB] Initializing Local SQLite (sql.js)...');
+    const SQL = await initSqlJs();
+    let sqlDb;
+    if (fs.existsSync(dbPath)) {
+      const fileBuffer = fs.readFileSync(dbPath);
+      sqlDb = new SQL.Database(fileBuffer);
+    } else {
+      sqlDb = new SQL.Database();
+    }
+    db = new AsyncDatabase(sqlDb, 'local');
   }
-  
-  db = new Database(sqlDb);
 
-  db.pragma('journal_mode = WAL');
-  db.pragma('foreign_keys = ON');
-
-  // Create all tables
-  db.exec(`
+  // Create Tables
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY,
       username TEXT UNIQUE NOT NULL,
@@ -206,10 +213,10 @@ export async function initDatabase() {
   // Seed admin user
   const adminUsername = process.env.ADMIN_USERNAME || 'admin';
   const adminPassword = process.env.ADMIN_PASSWORD || 'changeme123';
-  const existingUser = db.prepare('SELECT id FROM users WHERE username = ?').get(adminUsername);
+  const existingUser = await db.prepare('SELECT id FROM users WHERE username = ?').get(adminUsername);
   if (!existingUser) {
     const hash = bcrypt.hashSync(adminPassword, 10);
-    db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run(adminUsername, hash);
+    await db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run(adminUsername, hash);
     console.log(`[DB] Admin user "${adminUsername}" created.`);
   }
 

@@ -66,15 +66,14 @@ async function startServer() {
   app.use('/api/inbox', inboxRoutes);
   app.use('/api/stats', statsRoutes);
 
-
-
   // Sent emails route
-  app.get('/api/sent', (req, res) => {
+  app.get('/api/sent', async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = 50;
     const offset = (page - 1) * limit;
-    const total = db.prepare("SELECT COUNT(*) as count FROM sent_emails WHERE email_type != 'warmup'").get().count;
-    const emails = db.prepare(`
+    const totalCount = await db.prepare("SELECT COUNT(*) as count FROM sent_emails WHERE email_type != 'warmup'").get();
+    const total = totalCount?.count || 0;
+    const emails = await db.prepare(`
       SELECT se.*, ea.email as from_email, l.email as to_email, c.name as campaign_name
       FROM sent_emails se
       LEFT JOIN email_accounts ea ON se.account_id = ea.id
@@ -96,9 +95,9 @@ async function startServer() {
   });
 
   // Cron Jobs
-  cron.schedule('0 0 * * *', resetDailyCounts);
-  cron.schedule('0 * * * *', runWarmup);
-  cron.schedule('*/30 * * * *', runCampaigns);
+  cron.schedule('0 0 * * *', () => resetDailyCounts());
+  cron.schedule('0 * * * *', () => runWarmup());
+  cron.schedule('*/30 * * * *', () => runCampaigns());
 
   app.listen(PORT, () => {
     console.log(`\n🚀 ReachFlow server running on http://localhost:${PORT}\n`);

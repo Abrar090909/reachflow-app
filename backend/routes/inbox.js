@@ -5,9 +5,9 @@ import { authMiddleware } from '../middleware/auth.js';
 const router = Router();
 router.use(authMiddleware);
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const db = getDb();
-  const messages = db.prepare(`
+  const messages = await db.prepare(`
     SELECT i.*, l.first_name, l.last_name, c.name as campaign_name
     FROM inbox i
     LEFT JOIN leads l ON i.lead_id = l.id
@@ -17,9 +17,9 @@ router.get('/', (req, res) => {
   res.json(messages);
 });
 
-router.put('/:id/read', (req, res) => {
+router.put('/:id/read', async (req, res) => {
   const db = getDb();
-  db.prepare('UPDATE inbox SET is_read = 1 WHERE id = ?').run(req.params.id);
+  await db.prepare('UPDATE inbox SET is_read = 1 WHERE id = ?').run(req.params.id);
   res.json({ success: true });
 });
 

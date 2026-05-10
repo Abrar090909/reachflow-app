@@ -9,7 +9,7 @@ function warmupCount(stage) { return stage <= 3 ? 2 : stage <= 7 ? 3 : 5; }
 export async function runWarmup() {
   console.log('[Warmup] Running...');
   const db = getDb();
-  const accounts = db.prepare('SELECT * FROM email_accounts WHERE warmup_enabled = 1 AND is_active = 1').all();
+  const accounts = await db.prepare('SELECT * FROM email_accounts WHERE warmup_enabled = 1 AND is_active = 1').all();
   if (accounts.length < 2) { console.log('[Warmup] Need 2+ accounts.'); return; }
   for (const account of accounts) {
     const count = warmupCount(account.warmup_stage);
@@ -20,13 +20,13 @@ export async function runWarmup() {
         await sendEmail({ accountId: account.id, to: recipients[i % recipients.length].email, fromName: 'Warmup', subject: getRandom(WARMUP_SUBJECTS), body: getRandom(WARMUP_BODIES), emailType: 'warmup' });
       } catch (err) {
         console.error(`[Warmup] Error from ${account.email}:`, err.message);
-        if (err.message.includes('auth')) db.prepare('UPDATE email_accounts SET is_active = 0 WHERE id = ?').run(account.id);
+        if (err.message.includes('auth')) await db.prepare('UPDATE email_accounts SET is_active = 0 WHERE id = ?').run(account.id);
       }
     }
-    db.prepare('UPDATE email_accounts SET last_warmup_at = datetime("now") WHERE id = ?').run(account.id);
+    await db.prepare('UPDATE email_accounts SET last_warmup_at = datetime("now") WHERE id = ?').run(account.id);
     if (account.warmup_stage < 10 && account.health_score > 80) {
       const last = account.last_warmup_at ? new Date(account.last_warmup_at) : new Date(0);
-      if ((Date.now() - last.getTime()) / 86400000 >= 3) db.prepare('UPDATE email_accounts SET warmup_stage = warmup_stage + 1 WHERE id = ?').run(account.id);
+      if ((Date.now() - last.getTime()) / 86400000 >= 3) await db.prepare('UPDATE email_accounts SET warmup_stage = warmup_stage + 1 WHERE id = ?').run(account.id);
     }
   }
   console.log('[Warmup] Done.');

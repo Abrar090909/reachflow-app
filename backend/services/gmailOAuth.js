@@ -25,12 +25,12 @@ export async function exchangeCode(code) {
   const encAccessToken = CryptoJS.AES.encrypt(tokens.access_token, APP_SECRET).toString();
   const encRefreshToken = tokens.refresh_token ? CryptoJS.AES.encrypt(tokens.refresh_token, APP_SECRET).toString() : null;
   const db = getDb();
-  const existing = db.prepare('SELECT id FROM email_accounts WHERE email = ?').get(email);
+  const existing = await db.prepare('SELECT id FROM email_accounts WHERE email = ?').get(email);
   if (existing) {
-    db.prepare('UPDATE email_accounts SET oauth_access_token = ?, oauth_refresh_token = COALESCE(?, oauth_refresh_token), is_active = 1 WHERE email = ?').run(encAccessToken, encRefreshToken, email);
+    await db.prepare('UPDATE email_accounts SET oauth_access_token = ?, oauth_refresh_token = COALESCE(?, oauth_refresh_token), is_active = 1 WHERE email = ?').run(encAccessToken, encRefreshToken, email);
     return { id: existing.id, email, updated: true };
   }
-  const result = db.prepare("INSERT INTO email_accounts (email, provider, oauth_access_token, oauth_refresh_token) VALUES (?, 'gmail', ?, ?)").run(email, encAccessToken, encRefreshToken);
+  const result = await db.prepare("INSERT INTO email_accounts (email, provider, oauth_access_token, oauth_refresh_token) VALUES (?, 'gmail', ?, ?)").run(email, encAccessToken, encRefreshToken);
   return { id: result.lastInsertRowid, email, updated: false };
 }
 
@@ -41,7 +41,7 @@ export async function refreshAccessToken(account) {
   const { credentials } = await oAuth2Client.refreshAccessToken();
   const newAccessToken = CryptoJS.AES.encrypt(credentials.access_token, APP_SECRET).toString();
   const db = getDb();
-  db.prepare('UPDATE email_accounts SET oauth_access_token = ? WHERE id = ?').run(newAccessToken, account.id);
+  await db.prepare('UPDATE email_accounts SET oauth_access_token = ? WHERE id = ?').run(newAccessToken, account.id);
   return credentials.access_token;
 }
 
