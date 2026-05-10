@@ -43,11 +43,14 @@ export async function runWarmup() {
 
     await db.prepare("UPDATE email_accounts SET last_warmup_at = datetime('now') WHERE id = ?").run(account.id);
     
-    // Auto-advance stage every 3 days if health is good
-    if (account.warmup_stage < 10 && account.health_score > 80) {
-      const last = account.last_warmup_at ? new Date(account.last_warmup_at) : new Date(0);
-      if ((Date.now() - last.getTime()) / 86400000 >= 3) {
-        await db.prepare('UPDATE email_accounts SET warmup_stage = warmup_stage + 1 WHERE id = ?').run(account.id);
+    // Auto-advance stage every 1 day if health is good
+    if (account.warmup_stage < 10 && (account.health_score || 100) > 80) {
+      const stageStart = account.warmup_stage_started_at ? new Date(account.warmup_stage_started_at) : new Date(0);
+      const daysInStage = (Date.now() - stageStart.getTime()) / 86400000;
+      
+      if (daysInStage >= 1) { // 1 day per stage = 10 days total
+        console.log(`[Warmup] Advancing ${account.email} to stage ${account.warmup_stage + 1}`);
+        await db.prepare("UPDATE email_accounts SET warmup_stage = warmup_stage + 1, warmup_stage_started_at = datetime('now') WHERE id = ?").run(account.id);
       }
     }
   }));
