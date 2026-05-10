@@ -38,6 +38,7 @@ export const testAccount = (id) => api.get(`/accounts/${id}/test`);
 
 // Warmup
 export const getWarmupOverview = () => api.get('/warmup');
+export const runWarmupNow = () => api.post('/warmup/run-now');
 
 // Campaigns
 export const getCampaigns = () => api.get('/campaigns');

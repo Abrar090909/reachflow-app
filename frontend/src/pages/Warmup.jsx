@@ -1,15 +1,29 @@
-import { useEffect, useState } from 'react';
-import { getWarmupOverview } from '../lib/api';
-import { Flame, RefreshCw, Clock, Mail, Zap } from 'lucide-react';
+import { getWarmupOverview, runWarmupNow } from '../lib/api';
+import { Flame, RefreshCw, Clock, Mail, Zap, Play } from 'lucide-react';
 
 export default function Warmup() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [running, setRunning] = useState(false);
 
   const fetchData = async () => {
     try { const { data: d } = await getWarmupOverview(); setData(d); }
     catch (err) { console.error(err); }
     finally { setLoading(false); }
+  };
+
+  const handleRunNow = async () => {
+    if (running) return;
+    setRunning(true);
+    try {
+      await runWarmupNow();
+      await fetchData();
+      alert('Warmup cycle completed successfully!');
+    } catch (err) {
+      alert('Warmup error: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setRunning(false);
+    }
   };
 
   useEffect(() => { fetchData(); }, []);
@@ -28,9 +42,20 @@ export default function Warmup() {
           <h1 style={{ fontSize: 28, fontWeight: 800, color: '#0f172a', fontFamily: 'var(--font-display)' }}>Warmup</h1>
           <p style={{ fontSize: 14, color: '#94a3b8', marginTop: 4 }}>Build sender reputation automatically</p>
         </div>
-        <button onClick={fetchData} className="btn-secondary" style={{ padding: '8px 14px' }}>
-          <RefreshCw size={16} />
-        </button>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <button 
+            onClick={handleRunNow} 
+            disabled={running}
+            className="btn-primary" 
+            style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}
+          >
+            {running ? <RefreshCw size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Play size={16} />}
+            {running ? 'Running...' : 'Run Warmup Now'}
+          </button>
+          <button onClick={fetchData} className="btn-secondary" style={{ padding: '8px 14px' }}>
+            <RefreshCw size={16} />
+          </button>
+        </div>
       </div>
 
       {/* Overview Cards */}
