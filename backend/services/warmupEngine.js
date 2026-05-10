@@ -11,23 +11,46 @@ export async function runWarmup() {
   const db = getDb();
   const accounts = await db.prepare('SELECT * FROM email_accounts WHERE warmup_enabled = 1 AND is_active = 1').all();
   if (accounts.length < 2) { console.log('[Warmup] Need 2+ accounts.'); return; }
-  for (const account of accounts) {
+
+  // Run all accounts in parallel
+  await Promise.all(accounts.map(async (account) => {
     const count = warmupCount(account.warmup_stage);
-    const recipients = accounts.filter(a => a.id !== account.id);
+    // Shuffle recipients for this account
+    const recipients = accounts
+      .filter(a => a.id !== account.id)
+      .sort(() => 0.5 - Math.random());
+
     for (let i = 0; i < count && i < recipients.length; i++) {
       try {
-        if (i > 0) await new Promise(r => setTimeout(r, 30000 + Math.random() * 90000));
-        await sendEmail({ accountId: account.id, to: recipients[i % recipients.length].email, fromName: 'Warmup', subject: getRandom(WARMUP_SUBJECTS), body: getRandom(WARMUP_BODIES), emailType: 'warmup' });
+        // Random delay between 10s and 60s between emails
+        if (i > 0) await new Promise(r => setTimeout(r, 10000 + Math.random() * 50000));
+        
+        await sendEmail({ 
+          accountId: account.id, 
+          to: recipients[i].email, 
+          fromName: 'Warmup', 
+          subject: getRandom(WARMUP_SUBJECTS), 
+          body: getRandom(WARMUP_BODIES), 
+          emailType: 'warmup' 
+        });
       } catch (err) {
         console.error(`[Warmup] Error from ${account.email}:`, err.message);
-        if (err.message.includes('auth')) await db.prepare('UPDATE email_accounts SET is_active = 0 WHERE id = ?').run(account.id);
+        if (err.message.includes('auth')) {
+          await db.prepare('UPDATE email_accounts SET is_active = 0 WHERE id = ?').run(account.id);
+        }
       }
     }
+
     await db.prepare("UPDATE email_accounts SET last_warmup_at = datetime('now') WHERE id = ?").run(account.id);
+    
+    // Auto-advance stage every 3 days if health is good
     if (account.warmup_stage < 10 && account.health_score > 80) {
       const last = account.last_warmup_at ? new Date(account.last_warmup_at) : new Date(0);
-      if ((Date.now() - last.getTime()) / 86400000 >= 3) await db.prepare('UPDATE email_accounts SET warmup_stage = warmup_stage + 1 WHERE id = ?').run(account.id);
+      if ((Date.now() - last.getTime()) / 86400000 >= 3) {
+        await db.prepare('UPDATE email_accounts SET warmup_stage = warmup_stage + 1 WHERE id = ?').run(account.id);
+      }
     }
-  }
+  }));
+  
   console.log('[Warmup] Done.');
 }
