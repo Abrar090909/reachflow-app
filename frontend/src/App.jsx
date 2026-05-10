@@ -25,7 +25,7 @@ function ProtectedRoute() {
 
 export default function App() {
   return (
-    <BrowserRouter basename="/reachflow">
+    <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route element={<ProtectedRoute />}>
