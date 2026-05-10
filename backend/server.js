@@ -113,7 +113,7 @@ async function startServer() {
 
   // Cron Jobs
   cron.schedule('0 0 * * *', () => resetDailyCounts());
-  cron.schedule('*/15 * * * *', () => runWarmup());
+  cron.schedule('*/45 * * * *', () => runWarmup());
   cron.schedule('*/30 * * * *', () => runCampaigns());
 
   app.listen(PORT, () => {
