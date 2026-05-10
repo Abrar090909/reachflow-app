@@ -86,13 +86,20 @@ async function startServer() {
   });
 
   // Serve frontend in production
-  const frontendDist = path.join(__dirname, '..', 'frontend', 'dist');
-  app.use(express.static(frontendDist));
-  app.get('*', (req, res) => {
-    if (!req.path.startsWith('/api')) {
-      res.sendFile(path.join(frontendDist, 'index.html'));
-    }
-  });
+  const frontendDist = path.resolve(__dirname, '..', 'frontend', 'dist');
+  
+  if (fs.existsSync(frontendDist)) {
+    console.log(`[Server] Serving frontend from: ${frontendDist}`);
+    app.use(express.static(frontendDist));
+    app.get('*', (req, res) => {
+      if (!req.path.startsWith('/api')) {
+        res.sendFile(path.join(frontendDist, 'index.html'));
+      }
+    });
+  } else {
+    console.warn(`[Server] Warning: Frontend dist folder not found at ${frontendDist}`);
+    app.get('/', (req, res) => res.send('Backend is running, but frontend is not built yet.'));
+  }
 
   // Cron Jobs
   cron.schedule('0 0 * * *', () => resetDailyCounts());
