@@ -101,17 +101,14 @@ async function startServer() {
         res.sendFile(path.join(frontendDist, 'index.html'));
       }
     });
-  } else {
+  } else if (process.env.NODE_ENV === 'production') {
     console.error(`[Server] ❌ CRITICAL: Frontend dist folder NOT found!`);
     console.log(`[Server] Current directory: ${process.cwd()}`);
-    console.log(`[Server] Folder contents: ${fs.readdirSync(process.cwd()).join(', ')}`);
     app.get('/', (req, res) => {
-      res.status(500).send(`
-        <h1>Backend is running, but Frontend is missing</h1>
-        <p>Looking at: ${frontendDist}</p>
-        <p>Try running "Manual Deploy > Clear Build Cache" on Render.</p>
-      `);
+      res.status(500).send(`<h1>Frontend is missing</h1>`);
     });
+  } else {
+    console.log('[Server] Running in Dev mode (Frontend handled by Vite)');
   }
 
   // Cron Jobs
