@@ -23,7 +23,7 @@ export async function runWarmup() {
         if (err.message.includes('auth')) await db.prepare('UPDATE email_accounts SET is_active = 0 WHERE id = ?').run(account.id);
       }
     }
-    await db.prepare('UPDATE email_accounts SET last_warmup_at = datetime("now") WHERE id = ?').run(account.id);
+    await db.prepare("UPDATE email_accounts SET last_warmup_at = datetime('now') WHERE id = ?").run(account.id);
     if (account.warmup_stage < 10 && account.health_score > 80) {
       const last = account.last_warmup_at ? new Date(account.last_warmup_at) : new Date(0);
       if ((Date.now() - last.getTime()) / 86400000 >= 3) await db.prepare('UPDATE email_accounts SET warmup_stage = warmup_stage + 1 WHERE id = ?').run(account.id);
