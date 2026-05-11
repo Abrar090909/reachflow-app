@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { useState } from 'react';
 import Sidebar from './components/Sidebar';
-import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Accounts from './pages/Accounts';
 import Warmup from './pages/Warmup';
@@ -12,11 +11,8 @@ import Inbox from './pages/Inbox';
 import Sent from './pages/Sent';
 import { Menu, Zap } from 'lucide-react';
 
-function ProtectedRoute() {
-  const token = localStorage.getItem('rf_token');
+function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  
-  if (!token) return <Navigate to="/login" replace />;
   
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#F5F3EE' }}>
@@ -53,8 +49,8 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route element={<ProtectedRoute />}>
+        {/* No more login route! */}
+        <Route element={<Layout />}>
           <Route path="/" element={<Dashboard />} />
           <Route path="/accounts" element={<Accounts />} />
           <Route path="/warmup" element={<Warmup />} />
@@ -64,6 +60,7 @@ export default function App() {
           <Route path="/inbox" element={<Inbox />} />
           <Route path="/sent" element={<Sent />} />
         </Route>
+        {/* Catch-all redirects to dashboard */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

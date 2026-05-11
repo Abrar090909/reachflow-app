@@ -4,28 +4,9 @@ const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 const api = axios.create({ baseURL: API_URL });
 
-// Attach token to every request
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('rf_token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
-
-// Handle 401 globally
-api.interceptors.response.use(
-  (res) => res,
-  (err) => {
-    if (err.response?.status === 401) {
-      localStorage.removeItem('rf_token');
-      window.location.href = '/login';
-    }
-    return Promise.reject(err);
-  }
-);
-
-// Auth
-export const login = (data) => api.post('/auth/login', data);
-export const getMe = () => api.get('/auth/me');
+// Auth - Kept but simplified (no token needed)
+export const login = (data) => Promise.resolve({ data: { token: 'guest' } });
+export const getMe = () => Promise.resolve({ data: { email: 'admin@reachflow' } });
 
 // Accounts
 export const getAccounts = () => api.get('/accounts');

@@ -89,17 +89,6 @@ export default function Sidebar({ isOpen, onClose }) {
             Warmup engine running · Cron active
           </p>
         </div>
-        <button
-          onClick={() => { localStorage.removeItem('rf_token'); navigate('/login'); }}
-          className="sidebar-nav-item"
-          style={{ width: '100%', border: 'none', background: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)' }}
-          onMouseOver={e => e.currentTarget.style.color = '#f87171'}
-          onMouseOut={e => e.currentTarget.style.color = 'rgba(255,255,255,0.3)'}
-        >
-          <LogOut size={18} />
-          <span>Log out</span>
-        </button>
-      </div>
     </aside>
   );
 }
