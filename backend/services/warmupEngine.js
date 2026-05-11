@@ -15,15 +15,13 @@ export async function runWarmup() {
   // Run all accounts in parallel
   await Promise.all(accounts.map(async (account) => {
     const count = warmupCount(account.warmup_stage);
-    // Shuffle recipients for this account
-    const recipients = accounts
-      .filter(a => a.id !== account.id)
-      .sort(() => 0.5 - Math.random());
+    const recipients = accounts.filter(a => a.id !== account.id).sort(() => 0.5 - Math.random());
 
+    console.log(`[Warmup] Processing ${account.email} (Stage ${account.warmup_stage})`);
+    
     for (let i = 0; i < count && i < recipients.length; i++) {
       try {
-        // Random delay between 10s and 60s between emails
-        if (i > 0) await new Promise(r => setTimeout(r, 10000 + Math.random() * 50000));
+        if (i > 0) await new Promise(r => setTimeout(r, 5000 + Math.random() * 5000));
         
         await sendEmail({ 
           accountId: account.id, 
@@ -33,11 +31,9 @@ export async function runWarmup() {
           body: getRandom(WARMUP_BODIES), 
           emailType: 'warmup' 
         });
+        console.log(`[Warmup] SUCCESS: ${account.email} -> ${recipients[i].email}`);
       } catch (err) {
-        console.error(`[Warmup] Error from ${account.email}:`, err.message);
-        if (err.message.includes('auth')) {
-          await db.prepare('UPDATE email_accounts SET is_active = 0 WHERE id = ?').run(account.id);
-        }
+        console.error(`[Warmup] FAILED: ${account.email} -> ${recipients[i].email}:`, err.message);
       }
     }
 
@@ -46,9 +42,7 @@ export async function runWarmup() {
     // Auto-advance stage every 1 day if health is good
     if (account.warmup_stage < 10 && (account.health_score || 100) > 80) {
       const stageStart = account.warmup_stage_started_at ? new Date(account.warmup_stage_started_at) : new Date(0);
-      const daysInStage = (Date.now() - stageStart.getTime()) / 86400000;
-      
-      if (daysInStage >= 1) { // 1 day per stage = 10 days total
+      if ((Date.now() - stageStart.getTime()) / 86400000 >= 1) {
         console.log(`[Warmup] Advancing ${account.email} to stage ${account.warmup_stage + 1}`);
         await db.prepare("UPDATE email_accounts SET warmup_stage = warmup_stage + 1, warmup_stage_started_at = datetime('now') WHERE id = ?").run(account.id);
       }
