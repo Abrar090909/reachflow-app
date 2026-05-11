@@ -10,8 +10,9 @@
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "cd backend && nodemon server.js",
     "dev:frontend": "cd frontend && npm run dev",
-    "install:all": "npm install",
-    "build": "npm run build --workspace=frontend && rm -rf dist && cp -r frontend/dist ./dist",
+    "install:all": "npm install && npm install --workspaces",
+    "build:frontend": "cd frontend && npm install && npm run build",
+    "build": "npm run build:frontend && mkdir -p dist && rm -rf dist/* && cp -r frontend/dist/* dist/",
     "start": "node backend/server.js"
   },
   "devDependencies": {
