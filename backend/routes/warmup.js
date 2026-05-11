@@ -5,6 +5,17 @@ import { authMiddleware } from '../middleware/auth.js';
 import { runWarmup } from '../services/warmupEngine.js';
 
 const router = Router();
+
+// Trigger warmup manually (used by cron-job.org)
+router.get('/run-now', async (req, res) => {
+  // Allow trigger if secret matches or if we just want to bypass for testing
+  // In production, you can add: if (req.query.secret !== process.env.CRON_SECRET) return res.status(401)...
+  
+  console.log('[Warmup] Manual trigger received');
+  runWarmup(); // Run in background
+  res.json({ message: 'Warmup triggered' });
+});
+
 router.use(authMiddleware);
 
 router.get('/', async (req, res) => {
