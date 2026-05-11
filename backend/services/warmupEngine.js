@@ -37,19 +37,34 @@ const REPLY_BODIES = [
 
 function getRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
-// Stage → daily email count per account
-// Stage 1: 3, Stage 5: 16, Stage 10: 40
-const STAGE_DAILY_COUNT = [0, 3, 5, 8, 12, 16, 20, 25, 30, 35, 40];
+// --- Brevo Free Tier: 300 emails/day across ALL accounts ---
+// Each warmup send = 1 initial + 1 auto-reply = 2 API calls
+// Budget: 280 (safety margin) / 2 = 140 send pairs max per day
+// With 10 accounts: 140 / 10 = 14 sends per account per day MAX
+const BREVO_DAILY_LIMIT = 280; // leave 20 for test sends / campaigns
+
+// Stage → daily SENDS per account (replies are separate and counted separately)
+// Stage 1: 2, Stage 5: 8, Stage 10: 14
+// Total at stage 10: 14 sends + 14 replies = 28 per account × 10 accounts = 280
+const STAGE_DAILY_COUNT = [0, 2, 3, 4, 6, 8, 9, 10, 11, 13, 14];
 
 function getDailyCountForStage(stage) {
   const s = Math.max(0, Math.min(10, stage));
-  return STAGE_DAILY_COUNT[s] || 3;
+  return STAGE_DAILY_COUNT[s] || 2;
 }
 
-// How many emails to send per hourly run (daily count / ~16 waking hours, minimum 1)
+// How many emails to send per hourly run (spread across ~12 active hours)
 function getPerRunCount(stage) {
   const daily = getDailyCountForStage(stage);
-  return Math.max(1, Math.ceil(daily / 12)); // spread across ~12 cron runs per day
+  return Math.max(1, Math.ceil(daily / 12));
+}
+
+/**
+ * Get total emails sent today across ALL accounts (to enforce Brevo limit)
+ */
+async function getTotalSentToday(db) {
+  const result = await db.prepare('SELECT COALESCE(SUM(sent_today), 0) as total FROM email_accounts').get();
+  return result?.total || 0;
 }
 
 /**
@@ -106,9 +121,24 @@ export async function runWarmup() {
     let successCount = 0;
     let failCount = 0;
 
+    // Check global Brevo budget BEFORE starting
+    let globalSent = await getTotalSentToday(db);
+    console.log(`[Warmup] Global Brevo budget: ${globalSent}/${BREVO_DAILY_LIMIT} used today`);
+
+    if (globalSent >= BREVO_DAILY_LIMIT) {
+      console.log('[Warmup] ⛔ Brevo daily limit reached. Skipping entire run.');
+      return;
+    }
+
     // Process pairs sequentially to avoid rate limits
     for (const { sender, receiver } of pairs) {
-      // Check daily limit before sending
+      // Re-check global budget before each send (sends + replies both count)
+      if (globalSent >= BREVO_DAILY_LIMIT) {
+        console.log('[Warmup] ⛔ Brevo daily limit reached mid-run. Stopping.');
+        break;
+      }
+
+      // Check per-account daily limit
       if (sender.sent_today >= sender.daily_send_limit) {
         console.log(`[Warmup] SKIP: ${sender.email} hit daily limit (${sender.sent_today}/${sender.daily_send_limit})`);
         continue;
@@ -138,6 +168,7 @@ export async function runWarmup() {
 
         // Update sent_today in memory so subsequent checks are accurate
         sender.sent_today = (sender.sent_today || 0) + 1;
+        globalSent++; // Track global Brevo budget
 
         console.log(`[Warmup] ✅ ${sender.email} → ${receiver.email} (${subject})`);
         successCount++;
