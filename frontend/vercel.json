@@ -1,7 +1,6 @@
 {
   "name": "reachflow-frontend",
   "framework": "vite",
-  "rootDirectory": "frontend",
   "buildCommand": "npm install && npm run build",
   "outputDirectory": "dist",
   "rewrites": [
