@@ -208,6 +208,20 @@ export async function initDatabase() {
       is_read INTEGER DEFAULT 0,
       received_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+    CREATE TABLE IF NOT EXISTS warmup_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      from_account_id INTEGER NOT NULL,
+      to_account_id INTEGER NOT NULL,
+      from_email TEXT NOT NULL,
+      to_email TEXT NOT NULL,
+      subject TEXT,
+      message_id TEXT,
+      reply_sent INTEGER DEFAULT 0,
+      reply_sent_at DATETIME,
+      sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (from_account_id) REFERENCES email_accounts(id),
+      FOREIGN KEY (to_account_id) REFERENCES email_accounts(id)
+    );
   `);
 
   // Seed admin user

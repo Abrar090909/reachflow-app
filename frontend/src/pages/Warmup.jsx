@@ -1,15 +1,22 @@
 import { useEffect, useState } from 'react';
-import { getWarmupOverview, runWarmupNow } from '../lib/api';
-import { Flame, RefreshCw, Clock, Mail, Zap, Play } from 'lucide-react';
+import { getWarmupOverview, runWarmupNow, getWarmupLogs } from '../lib/api';
+import { Flame, RefreshCw, Clock, Mail, Play, CheckCircle, XCircle, ArrowRight } from 'lucide-react';
 
 export default function Warmup() {
   const [data, setData] = useState(null);
+  const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
 
   const fetchData = async () => {
-    try { const { data: d } = await getWarmupOverview(); setData(d); }
-    catch (err) { console.error(err); }
+    try {
+      const [overview, logsRes] = await Promise.all([
+        getWarmupOverview(),
+        getWarmupLogs()
+      ]);
+      setData(overview.data);
+      setLogs(logsRes.data.logs || []);
+    } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
 
@@ -18,8 +25,8 @@ export default function Warmup() {
     setRunning(true);
     try {
       await runWarmupNow();
-      await fetchData();
-      alert('Warmup cycle completed successfully!');
+      setTimeout(() => fetchData(), 3000); // refresh after 3s to let sends complete
+      alert('Warmup cycle triggered! Refresh in a few minutes to see results.');
     } catch (err) {
       alert('Warmup error: ' + (err.response?.data?.error || err.message));
     } finally {
@@ -72,8 +79,8 @@ export default function Warmup() {
           <div style={{ width: 44, height: 44, borderRadius: 14, background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
             <Mail size={20} color="#3b82f6" />
           </div>
-          <p style={{ fontSize: 32, fontWeight: 800, color: '#0f172a', fontFamily: 'var(--font-display)', lineHeight: 1 }}>{data?.activity?.length || 0}</p>
-          <p className="section-label" style={{ marginTop: 6 }}>Recent Warmup Emails</p>
+          <p style={{ fontSize: 32, fontWeight: 800, color: '#0f172a', fontFamily: 'var(--font-display)', lineHeight: 1 }}>{logs.length}</p>
+          <p className="section-label" style={{ marginTop: 6 }}>Warmup Emails (last 50)</p>
         </div>
         <div className="card-stat">
           <div style={{ width: 44, height: 44, borderRadius: 14, background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
@@ -135,29 +142,64 @@ export default function Warmup() {
         )}
       </div>
 
-      {/* Activity Log */}
+      {/* Warmup Log Table */}
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid #f1f5f9' }}>
-          <h2 style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Recent Warmup Activity</h2>
+          <h2 style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Warmup Log</h2>
         </div>
-        {data?.activity?.length ? (
-          <div style={{ maxHeight: 320, overflowY: 'auto' }}>
-            {data.activity.map((a, i) => (
-              <div key={a.id} style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '12px 24px', borderBottom: i < data.activity.length - 1 ? '1px solid #f8fafc' : 'none'
-              }}>
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <p style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>{a.from_email}</p>
-                  <p style={{ fontSize: 11, color: '#94a3b8' }}>{a.subject}</p>
-                </div>
-                <p style={{ fontSize: 11, color: '#94a3b8', flexShrink: 0 }}>{new Date(a.sent_at).toLocaleString()}</p>
-              </div>
-            ))}
+        {logs.length ? (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid #f1f5f9' }}>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.06em' }}>From</th>
+                  <th style={{ padding: '12px 4px', textAlign: 'center', width: 30 }}></th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.06em' }}>To</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.06em' }}>Subject</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.06em' }}>Reply</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.06em' }}>Sent At</th>
+                </tr>
+              </thead>
+              <tbody>
+                {logs.map((log, i) => (
+                  <tr key={log.id} style={{ borderBottom: i < logs.length - 1 ? '1px solid #f8fafc' : 'none', transition: 'background 0.1s' }}
+                    onMouseOver={e => e.currentTarget.style.background = '#fafbfd'}
+                    onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <td style={{ padding: '10px 16px', fontWeight: 600, color: '#334155' }}>
+                      {log.from_email?.split('@')[0]}@
+                    </td>
+                    <td style={{ padding: '10px 4px', textAlign: 'center' }}>
+                      <ArrowRight size={12} color="#94a3b8" />
+                    </td>
+                    <td style={{ padding: '10px 16px', fontWeight: 600, color: '#334155' }}>
+                      {log.to_email?.split('@')[0]}@
+                    </td>
+                    <td style={{ padding: '10px 16px', color: '#64748b', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {log.subject}
+                    </td>
+                    <td style={{ padding: '10px 16px', textAlign: 'center' }}>
+                      {log.reply_sent ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#10b981', fontWeight: 600, fontSize: 11 }}>
+                          <CheckCircle size={13} /> Yes
+                        </span>
+                      ) : (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#94a3b8', fontSize: 11 }}>
+                          <XCircle size={13} /> Pending
+                        </span>
+                      )}
+                    </td>
+                    <td style={{ padding: '10px 16px', textAlign: 'right', color: '#94a3b8', fontSize: 11, whiteSpace: 'nowrap' }}>
+                      {new Date(log.sent_at).toLocaleString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         ) : (
           <div style={{ padding: '40px 24px', textAlign: 'center' }}>
-            <p style={{ fontSize: 13, color: '#94a3b8' }}>No warmup activity yet</p>
+            <p style={{ fontSize: 13, color: '#94a3b8' }}>No warmup logs yet. Click "Run Warmup Now" to start.</p>
           </div>
         )}
       </div>

@@ -112,8 +112,17 @@ async function startServer() {
   }
 
   // Cron Jobs
-  cron.schedule('0 0 * * *', () => resetDailyCounts());
-  cron.schedule('0 * * * *', () => runWarmup());
+  // Daily reset at midnight IST (18:30 UTC)
+  cron.schedule('30 18 * * *', () => {
+    console.log('[Cron] Resetting daily send counts (midnight IST)');
+    resetDailyCounts();
+  });
+  // Warmup every hour
+  cron.schedule('0 * * * *', () => {
+    console.log('[Cron] Hourly warmup trigger');
+    runWarmup();
+  });
+  // Campaigns every 30 min
   cron.schedule('*/30 * * * *', () => runCampaigns());
 
   app.listen(PORT, () => {
