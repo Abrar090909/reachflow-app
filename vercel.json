@@ -1,0 +1,17 @@
+{
+  "name": "reachflow-frontend",
+  "framework": "vite",
+  "rootDirectory": "frontend",
+  "buildCommand": "npm install && npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "https://reachflow-4kh6.onrender.com/api/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
