@@ -1,5 +1,5 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Mail, Users, Flame, Send, Inbox, Zap, LogOut, X, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, Mail, Users, Flame, Send, Inbox, Zap, X, BarChart3 } from 'lucide-react';
 
 const NAV = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -75,7 +75,6 @@ export default function Sidebar({ isOpen, onClose }) {
       <div style={{ padding: '16px 12px 20px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
         {/* System Status */}
         <div style={{ 
-          margin: '0 0 12px', 
           padding: '14px 16px', 
           borderRadius: 16, 
           background: 'rgba(16,185,129,0.08)', 
@@ -89,6 +88,7 @@ export default function Sidebar({ isOpen, onClose }) {
             Warmup engine running · Cron active
           </p>
         </div>
+      </div>
     </aside>
   );
 }
