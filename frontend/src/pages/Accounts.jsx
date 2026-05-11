@@ -50,7 +50,7 @@ export default function Accounts() {
     <>
       <div className="animate-fade-in">
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28 }}>
+      <div className="page-header" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28 }}>
         <div>
           <h1 style={{ fontSize: 28, fontWeight: 800, color: '#0f172a', fontFamily: 'var(--font-display)' }}>Email Accounts</h1>
           <p style={{ fontSize: 14, color: '#94a3b8', marginTop: 4 }}>Manage your sending infrastructure</p>
@@ -80,7 +80,7 @@ export default function Accounts() {
       )}
 
       {/* Accounts Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
+      <div className="accounts-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
         {accounts.map((a, i) => (
           <div key={a.id} className={`animate-fade-in stagger-${Math.min(i+1, 4)}`}>
             <AccountCard account={a} onToggleWarmup={handleToggleWarmup} onDelete={handleDelete} onTest={handleTest} />

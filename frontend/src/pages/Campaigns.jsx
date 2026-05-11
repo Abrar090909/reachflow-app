@@ -16,14 +16,14 @@ export default function Campaigns() {
 
   return (
     <div className="animate-fade-in">
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28 }}>
+      <div className="page-header" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28 }}>
         <div>
           <h1 style={{ fontSize: 28, fontWeight: 800, color: '#0f172a', fontFamily: 'var(--font-display)' }}>Campaigns</h1>
           <p style={{ fontSize: 14, color: '#94a3b8', marginTop: 4 }}>Create and manage outreach campaigns</p>
         </div>
         <button onClick={() => navigate('/campaigns/new')} className="btn-primary"><Plus size={16} /> New Campaign</button>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
+      <div className="accounts-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
         {campaigns.map((c, i) => (
           <div key={c.id} className={`animate-fade-in stagger-${Math.min(i+1, 4)}`}>
             <CampaignCard campaign={c} onLaunch={handleLaunch} onPause={handlePause} />

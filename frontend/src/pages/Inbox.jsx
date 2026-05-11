@@ -20,7 +20,7 @@ export default function Inbox() {
 
   return (
     <div className="animate-fade-in">
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28 }}>
+      <div className="page-header" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28 }}>
         <div>
           <h1 style={{ fontSize: 28, fontWeight: 800, color: '#0f172a', fontFamily: 'var(--font-display)' }}>Inbox</h1>
           <p style={{ fontSize: 14, color: '#94a3b8', marginTop: 4 }}>{unreadCount} unread replies</p>
@@ -28,9 +28,9 @@ export default function Inbox() {
         <button onClick={fetchData} className="btn-secondary" style={{ padding: '8px 14px' }}><RefreshCw size={16} /></button>
       </div>
 
-      <div style={{ display: 'flex', gap: 16, height: 'calc(100vh - 180px)' }}>
+      <div className="two-col-layout" style={{ display: 'flex', gap: 16, height: 'calc(100vh - 180px)' }}>
         {/* Message List */}
-        <div className="card" style={{ width: 320, flexShrink: 0, padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <div className="card message-list-card" style={{ width: 320, flexShrink: 0, padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9' }}>
             <p className="section-label">Replies ({messages.length})</p>
           </div>

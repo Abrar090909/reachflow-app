@@ -45,7 +45,7 @@ export default function Warmup() {
   return (
     <div className="animate-fade-in">
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28 }}>
+      <div className="page-header" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28 }}>
         <div>
           <h1 style={{ fontSize: 28, fontWeight: 800, color: '#0f172a', fontFamily: 'var(--font-display)' }}>Warmup</h1>
           <p style={{ fontSize: 14, color: '#94a3b8', marginTop: 4 }}>Build sender reputation automatically</p>
@@ -67,7 +67,7 @@ export default function Warmup() {
       </div>
 
       {/* Overview Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
+      <div className="stats-grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
         <div className="card-stat" style={{ background: 'linear-gradient(135deg, #fffbeb, #fef3c7)', border: '1px solid #fde68a' }}>
           <div style={{ width: 44, height: 44, borderRadius: 14, background: '#fef08a', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
             <Flame size={20} color="#d97706" />
@@ -148,7 +148,7 @@ export default function Warmup() {
           <h2 style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Warmup Log</h2>
         </div>
         {logs.length ? (
-          <div style={{ overflowX: 'auto' }}>
+          <div className="table-scroll-wrapper" style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead>
                 <tr style={{ borderBottom: '2px solid #f1f5f9' }}>
