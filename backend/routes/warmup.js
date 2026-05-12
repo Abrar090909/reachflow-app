@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { getDb } from '../database.js';
-import { authMiddleware } from '../middleware/auth.js';
 import { runWarmup } from '../services/warmupEngine.js';
 
 const router = Router();
@@ -13,7 +12,6 @@ router.get('/run-now', async (req, res) => {
 });
 
 // Everything below requires auth
-router.use(authMiddleware);
 
 // Overview: accounts + recent activity
 router.get('/', async (req, res) => {

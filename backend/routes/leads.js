@@ -3,10 +3,8 @@ import multer from 'multer';
 import { parse } from 'csv-parse/sync';
 import fs from 'fs';
 import { getDb } from '../database.js';
-import { authMiddleware } from '../middleware/auth.js';
 
 const router = Router();
-router.use(authMiddleware);
 const upload = multer({ dest: 'uploads/', limits: { fileSize: 10 * 1024 * 1024 } });
 
 router.get('/', async (req, res) => {

@@ -3,12 +3,10 @@ import { getDb } from '../database.js';
 import CryptoJS from 'crypto-js';
 import { getAuthUrl } from '../services/gmailOAuth.js';
 import { sendEmail } from '../services/emailSender.js';
-import { authMiddleware } from '../middleware/auth.js';
 
 const router = Router();
 const APP_SECRET = process.env.APP_SECRET || 'default-secret';
 
-router.use(authMiddleware);
 
 router.get('/', async (req, res) => {
   const db = getDb();
