@@ -1,8 +1,6 @@
 import nodemailer from 'nodemailer';
-import CryptoJS from 'crypto-js';
 import { getDb } from '../database.js';
 import { createTransporter as createGmailTransporter } from './gmailOAuth.js';
-import axios from 'axios';
 
 const APP_SECRET = process.env.APP_SECRET || 'default-secret';
 
@@ -56,11 +54,11 @@ function buildTrackingHtml(plainBody, leadId) {
   return `<!DOCTYPE html><html><body>${htmlLines}<img src="${pixelUrl}" width="1" height="1" style="display:none;border:0" alt="" /></body></html>`;
 }
 
-// ── Brevo API sender ─────────────────────────────────────────────────────────
+// ── Brevo API sender (kept as optional fallback) ─────────────────────────────
 async function sendViaBrevoAPI({ to, fromEmail, fromName, subject, text, html, messageId }) {
   const apiKey = process.env.BREVO_API_KEY;
   if (!apiKey) throw new Error('BREVO_API_KEY is missing in .env');
-
+  const { default: axios } = await import('axios');
   const data = {
     sender: { name: fromName || 'ReachFlow', email: fromEmail },
     to: [{ email: to }],
@@ -68,18 +66,10 @@ async function sendViaBrevoAPI({ to, fromEmail, fromName, subject, text, html, m
     textContent: text,
     htmlContent: html,
   };
-
-  if (messageId) {
-    data.headers = {
-      'In-Reply-To': messageId,
-      'References': messageId,
-    };
-  }
-
+  if (messageId) data.headers = { 'In-Reply-To': messageId, 'References': messageId };
   const response = await axios.post('https://api.brevo.com/v3/smtp/email', data, {
     headers: { 'api-key': apiKey, 'Content-Type': 'application/json' },
   });
-
   return { messageId: response.data.messageId };
 }
 
@@ -115,37 +105,20 @@ export async function sendEmail({ accountId, to, fromName, subject, body, lead, 
 
   let resultMessageId;
 
-  if (account.provider === 'zoho' && process.env.BREVO_API_KEY && account.smtp_host?.includes('brevo')) {
-    console.log(`[EmailSender] Using Brevo API for ${account.email}`);
-    const res = await sendViaBrevoAPI({
-      to,
-      fromEmail: account.email,
-      fromName: fromName || 'ReachFlow',
-      subject: finalSubject,
-      text: plainBody,
-      html: htmlBody,
-      messageId,
-    });
-    resultMessageId = res.messageId;
-  } else {
-    let transporter;
-    if (account.provider === 'gmail') transporter = await createGmailTransporter(account);
-    else if (account.provider === 'zoho') transporter = await createZohoTransporter(account);
-    else throw new Error(`Unknown provider: ${account.provider}`);
+  if (account.provider !== 'gmail') throw new Error(`Only Gmail OAuth accounts are supported. Provider: ${account.provider}`);
 
-    // Fix #2: Send multipart (text + html with pixel) — plain-looking but trackable
-    const mailOptions = {
-      from: `"${fromName || 'ReachFlow'}" <${account.email}>`,
-      to,
-      subject: finalSubject,
-      text: plainBody,   // Fix #2: always plain text
-      html: htmlBody,    // Fix #3: HTML version with tracking pixel only
-    };
-    if (messageId) { mailOptions.inReplyTo = messageId; mailOptions.references = messageId; }
+  const transporter = await createGmailTransporter(account);
+  const mailOptions = {
+    from: `"${fromName || 'ReachFlow'}" <${account.email}>`,
+    to,
+    subject: finalSubject,
+    text: plainBody,
+    html: htmlBody,
+  };
+  if (messageId) { mailOptions.inReplyTo = messageId; mailOptions.references = messageId; }
 
-    const info = await transporter.sendMail(mailOptions);
-    resultMessageId = info.messageId;
-  }
+  const info = await transporter.sendMail(mailOptions);
+  resultMessageId = info.messageId;
 
   await db.prepare('UPDATE email_accounts SET sent_today = sent_today + 1 WHERE id = ?').run(accountId);
   const sentResult = await db.prepare(
