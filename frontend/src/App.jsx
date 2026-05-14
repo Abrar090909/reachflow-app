@@ -9,6 +9,7 @@ import NewCampaign from './pages/NewCampaign';
 import Leads from './pages/Leads';
 import Inbox from './pages/Inbox';
 import Sent from './pages/Sent';
+import Blocklist from './pages/Blocklist';
 import { Menu, Zap } from 'lucide-react';
 
 function Layout() {
@@ -59,6 +60,7 @@ export default function App() {
           <Route path="/leads" element={<Leads />} />
           <Route path="/inbox" element={<Inbox />} />
           <Route path="/sent" element={<Sent />} />
+          <Route path="/blocklist" element={<Blocklist />} />
         </Route>
         {/* Catch-all redirects to dashboard */}
         <Route path="*" element={<Navigate to="/" replace />} />

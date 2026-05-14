@@ -26,7 +26,7 @@ export default function Campaigns() {
       <div className="accounts-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
         {campaigns.map((c, i) => (
           <div key={c.id} className={`animate-fade-in stagger-${Math.min(i+1, 4)}`}>
-            <CampaignCard campaign={c} onLaunch={handleLaunch} onPause={handlePause} />
+            <CampaignCard campaign={c} onLaunch={handleLaunch} onPause={handlePause} onRefresh={fetchCampaigns} />
           </div>
         ))}
       </div>

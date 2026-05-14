@@ -156,10 +156,29 @@ export async function initDatabase() {
       follow_up_2_subject TEXT,
       follow_up_2_body TEXT,
       follow_up_2_delay_days INTEGER DEFAULT 5,
+      follow_up_3_subject TEXT,
+      follow_up_3_body TEXT,
+      follow_up_3_delay_days INTEGER DEFAULT 7,
+      follow_up_4_subject TEXT,
+      follow_up_4_body TEXT,
+      follow_up_4_delay_days INTEGER DEFAULT 10,
+      follow_up_5_subject TEXT,
+      follow_up_5_body TEXT,
+      follow_up_5_delay_days INTEGER DEFAULT 14,
+      subject_b TEXT,
+      body_b TEXT,
+      ab_split_percent INTEGER DEFAULT 50,
       daily_limit INTEGER DEFAULT 50,
+      send_start_hour INTEGER DEFAULT 8,
+      send_end_hour INTEGER DEFAULT 18,
+      send_timezone TEXT DEFAULT 'America/New_York',
+      send_days TEXT DEFAULT 'mon,tue,wed,thu,fri',
       sent_count INTEGER DEFAULT 0,
       reply_count INTEGER DEFAULT 0,
       open_count INTEGER DEFAULT 0,
+      click_count INTEGER DEFAULT 0,
+      bounce_count INTEGER DEFAULT 0,
+      unsubscribe_count INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       started_at DATETIME,
       completed_at DATETIME
@@ -175,11 +194,17 @@ export async function initDatabase() {
       custom_1 TEXT,
       custom_2 TEXT,
       status TEXT DEFAULT 'pending',
+      ab_variant TEXT DEFAULT 'a',
       sent_at DATETIME,
       opened_at DATETIME,
+      clicked_at DATETIME,
       replied_at DATETIME,
+      unsubscribed_at DATETIME,
       follow_up_1_sent_at DATETIME,
       follow_up_2_sent_at DATETIME,
+      follow_up_3_sent_at DATETIME,
+      follow_up_4_sent_at DATETIME,
+      follow_up_5_sent_at DATETIME,
       assigned_account_id INTEGER,
       FOREIGN KEY (campaign_id) REFERENCES campaigns(id),
       FOREIGN KEY (assigned_account_id) REFERENCES email_accounts(id)
@@ -192,9 +217,23 @@ export async function initDatabase() {
       subject TEXT,
       body TEXT,
       email_type TEXT,
+      status TEXT DEFAULT 'sent',
       message_id TEXT,
       sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (lead_id) REFERENCES leads(id)
+    );
+    CREATE TABLE IF NOT EXISTS blocklist (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT,
+      domain TEXT,
+      reason TEXT,
+      added_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS api_keys (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      service TEXT UNIQUE NOT NULL,
+      api_key TEXT NOT NULL,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
     CREATE TABLE IF NOT EXISTS inbox (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -205,6 +244,7 @@ export async function initDatabase() {
       from_name TEXT,
       subject TEXT,
       body TEXT,
+      sentiment TEXT DEFAULT 'neutral',
       is_read INTEGER DEFAULT 0,
       received_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );

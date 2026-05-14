@@ -1,14 +1,15 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Mail, Users, Flame, Send, Inbox, Zap, X, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, Mail, Users, Flame, Send, Inbox, Zap, X, BarChart3, Shield } from 'lucide-react';
 
 const NAV = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/accounts', icon: Mail, label: 'Accounts' },
-  { to: '/warmup', icon: Flame, label: 'Warmup' },
-  { to: '/campaigns', icon: Zap, label: 'Campaigns' },
-  { to: '/leads', icon: Users, label: 'Leads' },
-  { to: '/inbox', icon: Inbox, label: 'Inbox' },
-  { to: '/sent', icon: Send, label: 'Sent' },
+  { to: '/',          icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/accounts',  icon: Mail,            label: 'Accounts' },
+  { to: '/warmup',    icon: Flame,           label: 'Warmup' },
+  { to: '/campaigns', icon: Zap,             label: 'Campaigns' },
+  { to: '/leads',     icon: Users,           label: 'Leads' },
+  { to: '/inbox',     icon: Inbox,           label: 'Inbox' },
+  { to: '/sent',      icon: Send,            label: 'Sent' },
+  { to: '/blocklist', icon: Shield,          label: 'Blocklist' },
 ];
 
 export default function Sidebar({ isOpen, onClose }) {

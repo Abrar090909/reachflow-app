@@ -3,7 +3,7 @@ import { getLeads, getCampaigns, importLeads, previewCSV, deleteLead } from '../
 import LeadTable from '../components/LeadTable';
 import { Upload, Download, X, Users } from 'lucide-react';
 
-const STATUS_TABS = ['all', 'pending', 'sent', 'opened', 'replied', 'bounced'];
+const STATUS_TABS = ['all', 'pending', 'sent', 'opened', 'clicked', 'replied', 'interested', 'not_interested', 'bounced', 'unsubscribed'];
 
 export default function Leads() {
   const [leads, setLeads] = useState([]);
@@ -41,10 +41,17 @@ export default function Leads() {
   const handleDelete = async (id) => { await deleteLead(id); fetchData(); };
 
   const exportCSV = () => {
-    const header = 'First Name,Last Name,Email,Company,Status,Sent At\n';
-    const rows = leads.map(l => `${l.first_name||''},${l.last_name||''},${l.email},${l.company||''},${l.status},${l.sent_at||''}`).join('\n');
+    const header = 'First Name,Last Name,Email,Company,Website,Status,Sent At,Opened At,Replied At\n';
+    const rows = leads.map(l =>
+      [
+        l.first_name || '', l.last_name || '', l.email,
+        l.company || '', l.website || '', l.status,
+        l.sent_at || '', l.opened_at || '', l.replied_at || ''
+      ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')
+    ).join('\n');
     const blob = new Blob([header + rows], { type: 'text/csv' });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'leads_export.csv'; a.click();
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = `leads_export_${new Date().toISOString().slice(0,10)}.csv`; a.click();
   };
 
   const tabStyle = (s) => ({

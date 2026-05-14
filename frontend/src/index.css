@@ -25,8 +25,8 @@
   --color-cream-100: #F7F4EF;
   --color-cream-200: #EDE9E0;
 
-  --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
-  --font-display: 'Syne', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 /* ─── Base ─────────────────────────────────────────── */
