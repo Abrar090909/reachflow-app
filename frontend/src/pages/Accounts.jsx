@@ -50,7 +50,17 @@ export default function Accounts() {
   };
 
   const handleToggleWarmup = async (id) => { await toggleWarmup(id); fetchAccounts(); };
-  const handleDelete = async (id) => { if (confirm('Delete this account?')) { await deleteAccount(id); fetchAccounts(); } };
+  const handleDelete = async (id) => { 
+    if (confirm('Delete this account?')) { 
+      try {
+        await deleteAccount(id); 
+        fetchAccounts(); 
+        showMsg('✓ Account deleted successfully.', 'success');
+      } catch (err) {
+        showMsg('✗ Failed to delete account: ' + (err.response?.data?.error || err.message), 'error');
+      }
+    } 
+  };
   const handleTest = async (id) => {
     showMsg('Sending test email...', 'info');
     try { await testAccount(id); showMsg('✓ Test email sent! Check your inbox.', 'success'); }

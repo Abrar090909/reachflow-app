@@ -42,9 +42,19 @@ router.put('/:id/limit', async (req, res) => {
 
 // Delete account
 router.delete('/:id', async (req, res) => {
-  const db = getDb();
-  await db.prepare('DELETE FROM email_accounts WHERE id = ?').run(req.params.id);
-  res.json({ success: true });
+  try {
+    const db = getDb();
+    const id = req.params.id;
+    // Remove dependent warmup logs to avoid foreign key constraints
+    await db.prepare('DELETE FROM warmup_logs WHERE from_account_id = ? OR to_account_id = ?').run(id, id);
+    // Unassign leads
+    await db.prepare('UPDATE leads SET assigned_account_id = NULL WHERE assigned_account_id = ?').run(id);
+    
+    await db.prepare('DELETE FROM email_accounts WHERE id = ?').run(id);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Test send
